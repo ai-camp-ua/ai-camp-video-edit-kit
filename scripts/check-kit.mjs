@@ -11,7 +11,7 @@ function walk(dir) { return readdirSync(dir, { withFileTypes: true }).flatMap(e 
 const files = walk(root);
 // Explicitly approved public exports; other media remains excluded.
 const publicMedia = new Set([]);
-if (!readFileSync(join(root,'AGENTS.md')).equals(readFileSync(join(root,'CLAUDE.md')))) fail('Root instruction files differ');
+if (readFileSync(join(root,'CLAUDE.md'),'utf8').trim() !== '@AGENTS.md') fail('CLAUDE.md must contain only @AGENTS.md (the guide lives in AGENTS.md)');
 const sync = spawnSync(process.execPath, [join(root,'scripts/sync-codex-skills.mjs'),'--check'], {encoding:'utf8'});
 if (sync.status !== 0) fail(sync.stdout + sync.stderr);
 const registry = JSON.parse(readFileSync(join(root,'style-library/registry.json')));

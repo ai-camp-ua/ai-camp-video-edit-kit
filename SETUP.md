@@ -1,8 +1,12 @@
 # SETUP: local video-editing workspace for Claude Code
 
 You are setting up a workspace for editing videos (Reels, Shorts, TikTok, YouTube) with Claude Code.
-The user is not a programmer. Talk to them in Ukrainian, in plain words. Never ask them to edit files or type commands, except where noted (a Mac password, which only they may enter).
+The user is not a programmer. Talk to them in the language they write in, in plain words. Never ask them to edit files or type commands, except where noted (a Mac password, which only they may enter).
 Verify every step by running a command and reading its output, not by assuming. If a step fails, explain why in one or two sentences and fix it before moving on.
+
+## Video language
+
+Before installing, settle the language of the user's videos as a two-letter code (`LANG` below: `uk`, `ru`, `en`, `pl`…). Usually it is the language they write to you in; if that is not obvious (for example they write in one language but may record in another), ask one short question. Use `auto` only if they record in several languages. It is saved once in Step 3 and used for transcription and font checks.
 
 ## Target
 
@@ -26,10 +30,10 @@ What gets installed:
 | Tool | Purpose |
 |---|---|
 | FFmpeg (full build, `ffmpeg-full`) | cutting, joining, colour, audio, burned-in subtitles |
-| whisper.cpp + `ggml-large-v3-turbo` | local word-level transcription, Ukrainian included |
+| whisper.cpp + `ggml-large-v3-turbo` | local word-level transcription, ~100 languages |
 | yt-dlp | downloading reference videos from Instagram, YouTube or TikTok links |
 | Node.js 22+ | runtime for HyperFrames and the kit |
-| AI CAMP video-edit kit (`https://github.com/ai-camp-ua/ai-camp-video-edit-kit.git`) | editing skills, styles, Cyrillic-safe fonts, local transcription |
+| AI CAMP video-edit kit (`https://github.com/ai-camp-ua/ai-camp-video-edit-kit.git`) | editing skills, styles, formats 9:16 and 16:9, font checks for the video's language, local transcription |
 | HyperFrames skills | HTML-to-video rendering, captions, hook effects catalog |
 
 ## Step 0. System check
@@ -91,13 +95,14 @@ git fetch -q --depth 1 origin main
 git checkout -q -t origin/main
 printf 'CLAUDE.local.md\n' >> .git/info/exclude
 export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"
-npm ci && npm run setup && npm test
+npm ci && npm run setup -- --lang LANG && npm test
 npx hyperframes doctor
 ```
 
 - If the safety layer blocks `npm ci` as third-party code, tell the user this is the kit's own open-source code and ask them to allow it.
 - `npm warn` lines about install scripts (for example `esbuild`) are harmless; do not approve or deny them.
 - In `hyperframes doctor`, ✗ on Docker, Kokoro TTS or MusicGen is not needed for editing. HyperFrames downloads its own render browser on first render.
+- Replace `LANG` with the code from "Video language". Setup prints `Video language: …`; check it.
 - No API keys are needed: transcription is local.
 
 ## Step 4. Global HyperFrames skills
@@ -110,7 +115,7 @@ These always match the newest HyperFrames. `hyperframes-registry` holds the hook
 
 ## Step 5. Local notes for future sessions
 
-The kit's `CLAUDE.md` already covers Ukrainian replies, local transcription, fonts and the user's style. Write `$W/CLAUDE.local.md` only with this computer's details. Fill in the real paths:
+The kit's `CLAUDE.md` already covers replies in the user's language, local transcription, formats, fonts and the user's style. Write `$W/CLAUDE.local.md` only with this computer's details. Fill in the real paths:
 
 ```markdown
 # Local setup (this computer)
@@ -118,42 +123,43 @@ The kit's `CLAUDE.md` already covers Ukrainian replies, local transcription, fon
 - FFmpeg: use `<brew prefix>/opt/ffmpeg-full/bin/ffmpeg` (full build with subtitles/drawtext) if `ffmpeg` on PATH lacks those filters.
 - Whisper model: `<W>/models/<model file>` (found automatically by `npm run transcribe`).
 - References: download with `yt-dlp <link>` into the video's `refs/` folder. If a link fails (private account), ask the user to send the file.
-- Each new video gets its own folder via `npm run new-video -- <slug>` (reel-01, reel-02…). Footage goes into its `assets/`, references into `refs/`. Never move or modify originals.
+- Each new video gets its own folder via `npm run new-video -- <slug>` (reel-01, reel-02…; add `--format 16:9` for horizontal). Footage goes into its `assets/`, references into `refs/`. Never move or modify originals.
 ```
 
 ## Step 6. Smoke test
 
-Check the results, not only exit codes. Run from `$W`.
+Check the results, not only exit codes. Run from `$W`, with `LANG` as in Step 3.
 
 ```bash
 cd "$W" && export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"
 T=$(mktemp -d)
 
-# Whisper through the kit: a Ukrainian phrase with a pause, then silence cutting
-say -v Lesya -o "$T/a.aiff" "Привіт! Це тестове відео." && say -v Lesya -o "$T/b.aiff" "Ґанок, їжак, єнот."
-ffmpeg -y -loglevel error -i "$T/a.aiff" -f lavfi -t 2 -i anullsrc=r=22050:cl=mono -i "$T/b.aiff" \
-  -filter_complex "[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]" -map "[a]" "$T/voice.wav"
-ffmpeg -y -loglevel error -f lavfi -i color=c=gray:s=1080x1920:r=30 -i "$T/voice.wav" -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac "$T/raw.mp4"
-npm run transcribe -- "$T/raw.mp4" && node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > /dev/null 2>&1 && for f in raw cut; do printf "$f: "; ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/$f.mp4"; done
+# Transcription and silence cutting: a synthetic clip in the video's language (two sentences, 2 s pause)
+node scripts/test-clip.mjs "$T" --lang LANG
+npm run transcribe -- "$T/raw.mp4" && python3 -c "import json;print(' '.join(w['text'] for w in json.load(open('$T/raw.json'))['words']))"
+node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > "$T/cut.log" 2>&1 \
+  || { tail -20 "$T/cut.log"; echo "CUT FAILED"; }
+for f in raw cut; do printf "$f: "; ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/$f.mp4"; done
 
-# FFmpeg subtitles
-printf '1\n00:00:00,000 --> 00:00:03,000\nҐанок, їжак, єнот\n' > "$T/s.srt"
+# FFmpeg subtitles with the language's letters
+printf '1\n00:00:00,000 --> 00:00:03,000\n%s\n' "$(node -e "import('./scripts/lib/lang.mjs').then(m=>console.log(m.sampleFor('LANG')))")" > "$T/s.srt"
 ffmpeg -y -loglevel error -i "$T/cut.mp4" -vf "subtitles=$T/s.srt:force_style='FontSize=18'" -t 3 "$T/sub.mp4" && ffmpeg -y -loglevel error -ss 1 -i "$T/sub.mp4" -frames:v 1 "$T/sub.png"
 
 # yt-dlp: metadata only
 yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
-# Fonts and HyperFrames: render the Ukrainian letters check
+# Fonts and HyperFrames: one test frame per format
 npm run -s font-check -- "Bebas Neue" Montserrat
-npm run -s new-video -- ua-check && cp examples/ua-check/index.html video-projects/ua-check/
-cd video-projects/ua-check && npx hyperframes lint && npx hyperframes render --quality draft --output renders/ua-check.mp4 \
-  && ffmpeg -y -loglevel error -ss 1.5 -i renders/ua-check.mp4 -frames:v 1 "$T/ua.png"; echo "$T"
+npm run -s check-render -- --format 9:16
+npm run -s check-render -- --format 16:9
+echo "$T"
 ```
 
-- The transcript must contain the Ukrainian words, and `cut.mp4` must be about 1.5 s shorter than `raw.mp4`.
-- Open `sub.png` and `ua.png` yourself. Every ґ ї є і must be drawn in the same style as the rest of its line, with no letter from a different font.
-- If the HyperFrames render stalls near the end, run it once more.
-- Afterwards delete `$T` and `$W/video-projects/ua-check`.
+- `test-clip.mjs` prints the expected text. The transcript must match it apart from small spelling slips, in the same language, and `cut.mp4` must be about 1.5 s shorter than `raw.mp4`.
+- If `test-clip.mjs` has no sentences or no macOS voice for the language, pass two short sentences with `--text "…" "…"` or use any short voice recording with a pause.
+- Open `sub.png` and both `renders/check.png` files that `check-render` prints. Every letter must be drawn, in the same style as the rest of its line; the 9:16 and 16:9 frames must be laid out for their shape.
+- If a HyperFrames render stalls near the end, run it once more.
+- Afterwards delete `$T` and the `video-projects/check-*` folders.
 
 ## Step 7. Report
 
@@ -183,4 +189,4 @@ Open a new PowerShell afterwards so PATH refreshes.
 - **whisper.cpp:** download the latest Windows x64 release archive from https://github.com/ggml-org/whisper.cpp/releases and unpack it into `$W\whisper` (the kit finds `whisper\whisper-cli.exe` there).
 - **Model:** same files and RAM rule as Step 2, saved into `$W\models` (`curl.exe -L -o ...`).
 - **Steps 3–5:** the same commands work in PowerShell. Skip the `brew` and `.zshrc` parts. In `CLAUDE.local.md`, write the Windows paths.
-- **Test:** for the Whisper test, use any short voice recording instead of `say`.
+- **Test:** instead of `scripts/test-clip.mjs`, use any short voice recording with a pause in the video's language.

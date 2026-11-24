@@ -2,7 +2,8 @@
 
 ## 1. Create a project and transcribe
 
-From the repository root run `npm run new-video -- my-video`. Put your recording
+From the repository root run `npm run new-video -- my-video` (9:16; add
+`--format 16:9` for horizontal, see [formats](FORMATS.md)). Put your recording
 at `video-projects/my-video/assets/raw.mp4`. Preserve this original.
 
 ```sh

@@ -20,7 +20,7 @@ The left glass template needs your own `assets/source.mp4` with an audio stream.
 
 Codex reads AGENTS.md and discovers `.agents/skills/`. Trust the project in Codex
 if you want its project settings loaded. Restart if the skills do not appear.
-Claude Code reads CLAUDE.md and `.claude/skills/`. Neither runtime needs a special
+Claude Code reads CLAUDE.md (which imports AGENTS.md) and `.claude/skills/`. Neither runtime needs a special
 MCP server for local editing. The root `npm run check` validates the distribution;
 it does not lint personal work under video-projects.
 

@@ -1,5 +1,5 @@
 {
-  "about": "Font set taken from HyperFrames (bundled fonts, frame presets) and this kit's styles. 'cyrillic' = the Google Fonts family has a Cyrillic subset; all 18 were render-checked with 'Ґанок їжак єнот і'. 'replace' = closest-looking font from the same set that has Cyrillic.",
+  "about": "Font set taken from HyperFrames (bundled fonts, frame presets) and this kit's styles. 'cyrillic' = the Google Fonts family has a Cyrillic subset; all 18 were render-checked with Ukrainian and Russian text. 'replace' = closest-looking font from the same set that has Cyrillic.",
   "cyrillic": [
     "Inter", "Montserrat", "Nunito", "Oswald", "Roboto", "Open Sans", "Raleway",
     "Playfair Display", "Lora", "Merriweather", "Source Serif 4", "EB Garamond",

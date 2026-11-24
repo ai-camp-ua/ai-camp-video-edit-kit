@@ -1,13 +1,19 @@
 # AI CAMP video-edit kit: workspace guide
 
-Turn a talking-head recording into a finished vertical video (Reels, Shorts,
-TikTok) with local HyperFrames rendering, transcript-driven cuts, captions, and
-motion graphics. Users are often not programmers: answer in their language
-(usually Ukrainian), in short plain words, and show results instead of code.
+Turn a talking-head recording into a finished video, vertical (Reels, Shorts,
+TikTok) or horizontal (YouTube), with local HyperFrames rendering,
+transcript-driven cuts, captions, and motion graphics. Users are often not
+programmers: answer in the language they write in, in short plain words, and
+show results instead of code.
+
+The video's language is `VIDEO_LANGUAGE` in `.env` (set by
+`npm run setup -- --lang xx`; empty = auto-detect). Transcription, the font check
+and the render check read it. If a video is in another language, pass
+`--language xx` / `--lang xx` for that video.
 
 ## Runtime routing
 
-`AGENTS.md` and `CLAUDE.md` contain the same standing guide. Keep them synchronized.
+This guide lives in `AGENTS.md`; `CLAUDE.md` only imports it (`@AGENTS.md`). Edit this file only.
 Claude Code uses `.claude/skills/`. Codex uses the generated `.agents/skills/`.
 Edit canonical skills in `.claude/skills/`, then run `npm run sync:skills`.
 The HyperFrames skills (`hyperframes`, `hyperframes-cli`, `hyperframes-registry`,
@@ -47,17 +53,20 @@ and the project's DESIGN.md. The philosophy's fast sizzle pacing is a style
 reference; give speech room to breathe. Framework skill contracts override
 historical code recipes in the style guide.
 
-## Fonts and Ukrainian text
+## Fonts and letters
 
-Every font must draw Ukrainian letters (ґ ї є і) itself. Before using a font run
-`npm run font-check -- "Font Name"`. If it has no Cyrillic, put the replacement
-from `fonts/fonts.json` right after it in the font stack and load both; if it is
-not in the table, pick the closest-looking Cyrillic font from that file. Render
-one frame with "Ґанок їжак єнот і" and look at it. Details: `docs/FONTS.md`.
+Every font must draw all letters of the video's language itself. Before using a
+font run `npm run font-check -- "Font Name"`. If it does not cover the language,
+use its replacement (Cyrillic: `fonts/fonts.json`) for the whole text, Latin and
+digits included, so a line never mixes two fonts. Check one frame with
+`npm run check-render` or a frame of the real video. Details: `docs/FONTS.md`.
 
 ## Workspace
 
-Create a project with `npm run new-video -- my-video`. Keep source media, EDLs,
+Create a project with `npm run new-video -- my-video [--format 9:16|16:9|1:1|4:5]`
+(default 9:16). Choose the format from the request or the footage and ask when
+unclear; layout rules per format are in `docs/FORMATS.md`. Footage goes into the
+project's `assets/`, reference videos into `refs/`. Keep source media, EDLs,
 transcripts, compositions, and renders together under `video-projects/<slug>/`.
 Run HyperFrames from that project's directory. `style-library/registry.json`
 indexes cards; each style has a DESIGN.md, CSS tokens, and named text slots.
@@ -69,11 +78,13 @@ gitignored. Never print secrets or copy private media into library examples.
 
 ## Editing and timing
 
-Transcribe locally: `npm run transcribe -- <video>` (whisper.cpp, Ukrainian by
-default, `--language en` for English; free, nothing uploaded). Whisper can
-mishear names, brands, and slang: fix them in captions from context and never
-invent words the speaker did not say. Whisper also invents phrases on silence
-("Дякую за перегляд", "Субтитрувальниця…"): drop them. Cloud providers (ElevenLabs, OpenAI) and
+Transcribe locally: `npm run transcribe -- <video>` (whisper.cpp, language from
+`VIDEO_LANGUAGE` or auto-detected; free, nothing uploaded; recordings over 10
+minutes are split at pauses automatically). Whisper can mishear names, brands,
+and slang: fix them in captions from context and never invent words the speaker
+did not say. Whisper also invents stock phrases over silence or music, the kind
+a video ends with ("Thanks for watching", "Дякую за перегляд", "Продолжение
+следует", subtitle credits): drop any phrase with no speech under it. Cloud providers (ElevenLabs, OpenAI) and
 paid generation (Kie.ai) are optional; see `docs/TOOLS-AND-API-KEYS.md` and ask
 before any upload or paid call. Reuse existing transcripts and assets.
 
@@ -104,7 +115,7 @@ and 1.8 seconds before that word. Inline timelines require manual timing review.
 
 Review the encoded draft, extract and inspect hero frames and transition
 boundaries, and listen to the audio joins. Check cropped faces, overflow, black
-flashes, readable captions, Ukrainian letters, clipping, and A/V sync. Resolve
+flashes, readable captions, every letter of the language, safe zones of the format, clipping, and A/V sync. Resolve
 problems before the final render. Save evidence in VERIFY.md.
 
 Honor approvals already provided. When review approval is missing, prepare the

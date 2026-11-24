@@ -12,7 +12,7 @@ node scripts/sync-codex-skills.mjs --check
 ```
 
 The mirror uses real files so Windows users do not need symlink privileges.
-Keep `AGENTS.md` and `CLAUDE.md` synchronized. Project configuration leaves the
+`CLAUDE.md` only imports `AGENTS.md`, so edit `AGENTS.md`. Project configuration leaves the
 student's model, authentication, sandbox, and approval settings alone.
 Project settings load after the user trusts the project. Restart Codex if new
 skills do not appear. Claude Code uses the canonical `.claude/skills/` files.

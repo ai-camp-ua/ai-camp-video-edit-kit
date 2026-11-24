@@ -1,11 +1,13 @@
 # AI CAMP video-edit kit
 
-Кіт для монтажу вертикальних відео (Reels, Shorts, TikTok) з **Claude Code** або
-Codex. Записуєш себе на камеру, кидаєш файл, а Claude ріже паузи й дублі, робить
+Кіт для монтажу відео з **Claude Code** або Codex: вертикальних (Reels, Shorts,
+TikTok) і горизонтальних (YouTube). Записуєш себе на камеру, кидаєш файл, а Claude ріже паузи й дублі, робить
 субтитри, хуки, графіку, музику й звук і рендерить готове відео.
 
-Зроблено під українську мову: транскрипція локально через Whisper (безкоштовно,
-нічого не вивантажується), а шрифти завжди з нормальними ґ ї є і.
+Працює з будь-якою мовою: мова відео задається один раз під час встановлення.
+Транскрипція локально через Whisper (безкоштовно, нічого не вивантажується), а
+шрифти перевіряються на всі літери мови: кирилиця (ґ ї є і, ё ы э ъ), польські,
+турецькі тощо.
 
 ## Що всередині
 
@@ -16,8 +18,10 @@ Codex. Записуєш себе на камеру, кидаєш файл, а Cl
 - **406 карток графіки** у двох стилях, з токенами кольорів і шрифтів.
 - **Свій стиль:** `MY-STYLE.md`. Скидаєш 4–5 рілсів, які подобаються, кажеш, що
   саме в кожному подобається, і Claude збирає з цього твій стиль.
-- **Шрифти:** набір з HyperFrames, перевірка кирилиці (`npm run font-check`) і
-  таблиця заміни для шрифтів без неї ([docs/FONTS.md](docs/FONTS.md)).
+- **Шрифти:** набір з HyperFrames, перевірка літер мови (`npm run font-check`) і
+  таблиця заміни для шрифтів без кирилиці ([docs/FONTS.md](docs/FONTS.md)).
+- **Формати:** 9:16, 16:9, 1:1, 4:5 з правилами розмітки для кожного
+  ([docs/FORMATS.md](docs/FORMATS.md)). Довгі записи транскрибуються шматками.
 - Інструменти: транскрипція, різання, перевірка таймінгу, preflight.
 
 ## Встановлення
@@ -27,11 +31,11 @@ Codex. Записуєш себе на камеру, кидаєш файл, а Cl
 Вручну (macOS): потрібні Node.js 22+, Git, FFmpeg, whisper.cpp і Chrome.
 
 ```sh
-brew install node git ffmpeg whisper-cpp
+brew install node git ffmpeg-full whisper-cpp yt-dlp
 git clone https://github.com/ai-camp-ua/ai-camp-video-edit-kit.git ai-camp-video-edit-kit
 cd ai-camp-video-edit-kit
 npm ci
-npm run setup
+npm run setup -- --lang uk    # мова відео: uk, ru, en, pl…
 npm test
 npx -y hyperframes@latest skills update
 ```
@@ -42,7 +46,8 @@ npx -y hyperframes@latest skills update
 ## Як монтувати
 
 ```sh
-npm run new-video -- my-reel
+npm run new-video -- my-reel                    # 9:16
+npm run new-video -- my-lesson --format 16:9    # YouTube
 ```
 
 Поклади запис у `video-projects/my-reel/assets/raw.mp4` і скажи Claude:
@@ -69,7 +74,7 @@ npx hyperframes render --quality draft --output renders/demo.mp4
 | Правила якості монтажу | [docs/EDITING-PLAYBOOK.md](docs/EDITING-PLAYBOOK.md) |
 | Шрифти й кирилиця | [docs/FONTS.md](docs/FONTS.md) |
 | Платні сервіси (необов'язково) | [docs/TOOLS-AND-API-KEYS.md](docs/TOOLS-AND-API-KEYS.md) |
-| Інструкція для Claude | [CLAUDE.md](CLAUDE.md) |
+| Інструкція для Claude | [AGENTS.md](AGENTS.md) (CLAUDE.md підтягує її) |
 | Бібліотека карток | [style-library/GUIDE.md](style-library/GUIDE.md) |
 | Шаблони сцен | [style-templates/README.md](style-templates/README.md) |
 | Проблеми з установкою | [docs/SETUP.md](docs/SETUP.md) |

@@ -26,8 +26,9 @@ Choose a provider only when the next stage needs it.
 npm run transcribe -- video-projects/my-video/assets/raw.mp4
 ```
 
-Writes word-level JSON beside the input (Ukrainian by default; add
-`--language en` for English). The model is found in `models/` of this kit,
+Writes word-level JSON beside the input. Language: `--language xx`, else
+`VIDEO_LANGUAGE` from `.env`, else auto-detect. Recordings over 10 minutes are
+split at pauses and joined back automatically. The model is found in `models/` of this kit,
 `../models/`, or `WHISPER_MODEL`. Whisper can mishear names and brand words:
 fix them in captions against what was actually said.
 

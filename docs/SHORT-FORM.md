@@ -9,8 +9,8 @@ short advertisement. It defaults to 1080x1920. Request a separately composed
 Run `npm run new-video -- my-reel`, then ask Codex (`$short-form-edit`) or Claude
 Code (`/short-form-edit`) to edit your local recording into that project. State
 the audience, intended action, target duration, and any brand preferences.
-The starter is landscape; the skill must set the reel's composition dimensions,
-layout, and metadata to 1080x1920 before authoring. Keep all source footage and
+New projects start in 9:16 (1080x1920); for a 16:9 version create it with
+`--format 16:9` (see docs/FORMATS.md). Keep all source footage and
 outputs inside the new project.
 
 1. Transcribe with `npm run transcribe` (local Whisper) or reuse verified word timestamps.
