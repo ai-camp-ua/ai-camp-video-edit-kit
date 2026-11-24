@@ -65,7 +65,7 @@ jobs:
       - name: Step 4 · HyperFrames skills
         run: |
           source ~/.ai-camp-path.sh
-          cd "$HOME" && npx -y hyperframes@latest skills update hyperframes hyperframes-cli hyperframes-registry media-use && ls ~/.claude/skills
+          cd "$HOME/VideoEditing" && npx hyperframes skills update hyperframes hyperframes-cli hyperframes-registry media-use && ls ~/.claude/skills
 
       - name: Step 6 · voices on this machine
         continue-on-error: true

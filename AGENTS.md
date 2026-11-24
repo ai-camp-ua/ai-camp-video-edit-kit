@@ -17,8 +17,8 @@ This guide lives in `AGENTS.md`; `CLAUDE.md` only imports it (`@AGENTS.md`). Edi
 Claude Code uses `.claude/skills/`. Codex uses the generated `.agents/skills/`.
 Edit canonical skills in `.claude/skills/`, then run `npm run sync:skills`.
 The HyperFrames skills (`hyperframes`, `hyperframes-cli`, `hyperframes-registry`,
-`media-use`) are installed globally with `npx hyperframes skills update`, so they
-always match the newest CLI. Work locally unless the user requests subagents.
+`media-use`) are installed globally with `npx hyperframes skills update` run from the
+workspace, so they match the kit's pinned CLI. Do not update HyperFrames on your own. Work locally unless the user requests subagents.
 
 ## Start and route
 

@@ -10,8 +10,8 @@ renderer. If Chromium is unavailable, follow `npx hyperframes browser --help`.
 Windows users should reopen their terminal after installing FFmpeg to refresh PATH.
 
 The repository uses a recent HyperFrames (see package.json) and GSAP 3.14.2. The
-HyperFrames skills are installed globally with `npx hyperframes skills update` so
-they always match the newest CLI. Keep package-lock.json with package.json.
+HyperFrames skills are installed globally with `npx hyperframes skills update`, run
+from the kit folder so they match the kit's pinned CLI. Keep package-lock.json with package.json.
 
 `npm run new-video -- lesson-one` copies the synthetic starter and local GSAP into
 a new self-contained folder. Existing project names are refused so nothing is

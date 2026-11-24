@@ -1,7 +1,7 @@
 # SETUP: local video-editing workspace for Claude Code
 
 You are setting up a workspace for editing videos (Reels, Shorts, TikTok, YouTube) with Claude Code.
-The user is not a programmer. Talk to them in the language they write in, in plain words. Never ask them to edit files or type commands, except where noted (a Mac password, which only they may enter).
+The user is not a programmer. Talk to them in the language they write in, in plain words, in every message including short progress notes. Never ask them to edit files or type commands, except where noted (a Mac password, which only they may enter).
 Verify every step by running a command and reading its output, not by assuming. If a step fails, explain why in one or two sentences and fix it before moving on.
 
 ## Video language
@@ -18,6 +18,7 @@ W="$(pwd)"; echo "$W"; ls -A "$W"
 
 Stop and ask the user to create a separate folder (for example `~/VideoEditing`) and reopen the session with it if `$W` is any of:
 - the home folder;
+- a folder whose name ends with a dot or a space (it breaks on Windows and is easy to confuse);
 - Desktop, Documents or Downloads, or anything inside iCloud Drive;
 - a folder that already holds unrelated files.
 
@@ -102,16 +103,17 @@ npx hyperframes doctor
 - If the safety layer blocks `npm ci` as third-party code, tell the user this is the kit's own open-source code and ask them to allow it.
 - `npm warn` lines about install scripts (for example `esbuild`) are harmless; do not approve or deny them.
 - In `hyperframes doctor`, ✗ on Docker, Kokoro TTS or MusicGen is not needed for editing. HyperFrames downloads its own render browser on first render.
+- The kit pins a tested HyperFrames version. A notice that a newer version exists is expected; do not update and do not mention it.
 - Replace `LANG` with the code from "Video language". Setup prints `Video language: …`; check it.
 - No API keys are needed: transcription is local.
 
 ## Step 4. Global HyperFrames skills
 
 ```bash
-cd "$HOME" && npx -y hyperframes@latest skills update hyperframes hyperframes-cli hyperframes-registry media-use && ls ~/.claude/skills
+cd "$W" && npx hyperframes skills update hyperframes hyperframes-cli hyperframes-registry media-use && ls ~/.claude/skills
 ```
 
-These always match the newest HyperFrames. `hyperframes-registry` holds the hook effects catalog. The kit's own editing skills live in `$W/.claude/skills`.
+Run from `$W`, they match the kit's HyperFrames version exactly. `hyperframes-registry` holds the hook effects catalog. The kit's own editing skills live in `$W/.claude/skills`.
 
 ## Step 5. Local notes for future sessions
 

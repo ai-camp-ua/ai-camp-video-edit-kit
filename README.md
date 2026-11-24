@@ -37,7 +37,7 @@ cd ai-camp-video-edit-kit
 npm ci
 npm run setup -- --lang uk    # мова відео: uk, ru, en, pl…
 npm test
-npx -y hyperframes@latest skills update
+npx hyperframes skills update
 ```
 
 Модель Whisper (`ggml-large-v3-turbo.bin` або легша `ggml-large-v3-turbo-q5_0.bin`)
