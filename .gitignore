@@ -39,6 +39,7 @@ Thumbs.db
 !examples/short-form/assets/*.json
 
 
-# Whisper models (large binaries)
+# Whisper models and the Windows whisper.cpp build (large binaries)
 models/
+whisper/
 *.bin

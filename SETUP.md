@@ -136,14 +136,14 @@ T=$(mktemp -d)
 
 # Transcription and silence cutting: a synthetic clip in the video's language (two sentences, 2 s pause)
 node scripts/test-clip.mjs "$T" --lang LANG
-npm run transcribe -- "$T/raw.mp4" && python3 -c "import json;print(' '.join(w['text'] for w in json.load(open('$T/raw.json'))['words']))"
+npm run transcribe -- "$T/raw.mp4" && node -e "console.log(require(process.argv[1]).words.map(w=>w.text).join(' '))" "$T/raw.json"
 node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > "$T/cut.log" 2>&1 \
   || { tail -20 "$T/cut.log"; echo "CUT FAILED"; }
 for f in raw cut; do printf "$f: "; ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/$f.mp4"; done
 
 # FFmpeg subtitles with the language's letters
 printf '1\n00:00:00,000 --> 00:00:03,000\n%s\n' "$(node -e "import('./scripts/lib/lang.mjs').then(m=>console.log(m.sampleFor('LANG')))")" > "$T/s.srt"
-ffmpeg -y -loglevel error -i "$T/cut.mp4" -vf "subtitles=$T/s.srt:force_style='FontSize=18'" -t 3 "$T/sub.mp4" && ffmpeg -y -loglevel error -ss 1 -i "$T/sub.mp4" -frames:v 1 "$T/sub.png"
+(cd "$T" && ffmpeg -y -loglevel error -i cut.mp4 -vf "subtitles=s.srt:force_style='FontSize=18'" -t 3 sub.mp4 && ffmpeg -y -loglevel error -ss 1 -i sub.mp4 -frames:v 1 sub.png)
 
 # yt-dlp: metadata only
 yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
@@ -156,7 +156,7 @@ echo "$T"
 ```
 
 - `test-clip.mjs` prints the expected text. The transcript must match it apart from small spelling slips, in the same language, and `cut.mp4` must be about 1.5 s shorter than `raw.mp4`.
-- If `test-clip.mjs` has no sentences or no macOS voice for the language, pass two short sentences with `--text "…" "…"` or use any short voice recording with a pause.
+- If `test-clip.mjs` has no sentences or no voice for the language, pass two short sentences with `--text "…" "…"` or use any short voice recording with a pause.
 - Open `sub.png` and both `renders/check.png` files that `check-render` prints. Every letter must be drawn, in the same style as the rest of its line; the 9:16 and 16:9 frames must be laid out for their shape.
 - If a HyperFrames render stalls near the end, run it once more.
 - Afterwards delete `$T` and the `video-projects/check-*` folders.
@@ -175,18 +175,54 @@ Then tell the user:
 
 ---
 
-## Windows (untested in practice: go carefully and verify each step)
+## Windows
 
-Use PowerShell. Install the packages:
+Claude Code on Windows runs commands in Git Bash, so the steps above work as written, with these changes.
 
-```powershell
-winget install --accept-package-agreements --accept-source-agreements OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp
+**Step 0.** System check:
+
+```bash
+cmd //c ver; echo "$PROCESSOR_ARCHITECTURE"; df -h "$HOME" | tail -1
+echo "RAM GB: $(powershell.exe -NoProfile -Command '[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB)' | tr -d '\r')"
 ```
 
-Open a new PowerShell afterwards so PATH refreshes.
+**Step 1.** Packages:
 
-- **FFmpeg:** `Gyan.FFmpeg` is a full build with `libass`. Check with `ffmpeg -hide_banner -filters | findstr subtitles`.
-- **whisper.cpp:** download the latest Windows x64 release archive from https://github.com/ggml-org/whisper.cpp/releases and unpack it into `$W\whisper` (the kit finds `whisper\whisper-cli.exe` there).
-- **Model:** same files and RAM rule as Step 2, saved into `$W\models` (`curl.exe -L -o ...`).
-- **Steps 3–5:** the same commands work in PowerShell. Skip the `brew` and `.zshrc` parts. In `CLAUDE.local.md`, write the Windows paths.
-- **Test:** instead of `scripts/test-clip.mjs`, use any short voice recording with a pause in the video's language.
+```bash
+winget install --accept-package-agreements --accept-source-agreements OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp Microsoft.VCRedist.2015+.x64
+```
+
+- Windows may ask "Do you want to allow this app to make changes?" a few times. The user clicks Yes.
+- "Already installed" lines are fine.
+- `Gyan.FFmpeg` is a full build (subtitles, drawtext).
+
+Programs installed now are not visible to this session yet. Save a line that picks them up, and from here on start every command with `source ~/.ai-camp-path.sh;`. After Claude Code restarts it is no longer needed.
+
+```bash
+cat > ~/.ai-camp-path.sh <<'EOF'
+export PATH="$(cygpath -u -p "$(powershell.exe -NoProfile -Command '[Environment]::GetEnvironmentVariable("Path","User")+";"+[Environment]::GetEnvironmentVariable("Path","Machine")' | tr -d '\r')"):$PATH"
+EOF
+source ~/.ai-camp-path.sh; node -v; yt-dlp --version; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "
+```
+
+whisper.cpp (the newest release that has a Windows build):
+
+```bash
+cd "$W" && source ~/.ai-camp-path.sh
+U=$(curl -s "https://api.github.com/repos/ggml-org/whisper.cpp/releases?per_page=20" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{for(const r of JSON.parse(s))for(const a of r.assets)if(a.name==='whisper-bin-x64.zip'){console.log(a.browser_download_url);return}})")
+curl -L --fail -o whisper.zip "$U" && powershell.exe -NoProfile -Command "Expand-Archive whisper.zip -DestinationPath whisper -Force" && rm whisper.zip
+./whisper/Release/whisper-cli.exe --help 2>&1 | head -3
+```
+
+The kit finds `whisper/Release/whisper-cli.exe` by itself. If it prints nothing, the Visual C++ runtime is missing: run the winget line again.
+
+**Step 2.** Same commands; replace the `RAM=` line with:
+
+```bash
+RAM=$(powershell.exe -NoProfile -Command '[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB)' | tr -d '\r')
+```
+
+**Steps 3–6.**
+- Replace `export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"` with `source ~/.ai-camp-path.sh`.
+- In `CLAUDE.local.md`, skip the FFmpeg line and write the Windows paths.
+- `test-clip.mjs` uses Windows voices. Often only English is installed. If there is no voice for `LANG`, make the clip with `--lang en` and transcribe it with `npm run transcribe -- "$T/raw.mp4" --language en`. Or the user can add a voice in Settings → Time & language → Speech.

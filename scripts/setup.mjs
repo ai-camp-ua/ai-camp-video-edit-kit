@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findWhisper } from './lib/whisper.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let missing = false;
 for (const [command, args] of [['node', ['--version']], ['ffmpeg', ['-version']], ['ffprobe', ['-version']]]) {
@@ -10,8 +11,8 @@ for (const [command, args] of [['node', ['--version']], ['ffmpeg', ['-version']]
   if (result.error || result.status !== 0) { console.error(`${command}: missing from PATH`); missing = true; }
   else console.log((result.stdout || result.stderr).split(/\r?\n/)[0]);
 }
-const whisper = spawnSync('whisper-cli', ['--help'], { stdio: 'ignore', windowsHide: true });
-console.log(whisper.status === 0 ? 'whisper-cli: ok' : 'whisper-cli: not found (needed for npm run transcribe)');
+const whisper = findWhisper(root);
+console.log(whisper ? `whisper-cli: ok (${whisper})` : 'whisper-cli: not found (needed for npm run transcribe)');
 if (Number(process.versions.node.split('.')[0]) < 22) { console.error('Node 22+ required.'); missing = true; }
 if (!existsSync(join(root, '.env'))) { copyFileSync(join(root, '.env.example'), join(root, '.env')); console.log('Created local .env. No keys are required; fill only optional services you choose.'); }
 else console.log('Existing .env preserved.');

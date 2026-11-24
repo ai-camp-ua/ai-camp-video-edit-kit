@@ -13,11 +13,12 @@
 //   { words: [{ text, start, end, type: "word" }], audio_duration_secs, language_code }
 //
 // Model lookup: --model, then WHISPER_MODEL, then models/*.bin in this kit, then ../models/*.bin.
-// Binary lookup: WHISPER_CLI, whisper-cli on PATH, Homebrew paths, whisper/whisper-cli.exe (Windows).
+// Binary lookup: scripts/lib/whisper.mjs (WHISPER_CLI, PATH, Homebrew, whisper/Release/whisper-cli.exe on Windows).
 
 import { existsSync, readFileSync, writeFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join, resolve, extname } from "node:path";
 import { spawnSync } from "node:child_process";
+import { findWhisper } from "./lib/whisper.mjs";
 import { argv, exit, env } from "node:process";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -57,10 +58,10 @@ function findModel() {
   }
   die("No Whisper model found. Put a ggml-*.bin model in models/ or set WHISPER_MODEL.");
 }
-const bin = [env.WHISPER_CLI, "whisper-cli", "/opt/homebrew/bin/whisper-cli", "/usr/local/bin/whisper-cli", join(ROOT, "whisper", "whisper-cli.exe")]
-  .filter(Boolean)
-  .find((b) => spawnSync(b, ["--help"], { stdio: "ignore" }).status === 0);
-if (!bin) die("whisper-cli not found. Install it: brew install whisper-cpp");
+const bin = findWhisper(ROOT);
+if (!bin) die(process.platform === "win32"
+  ? "whisper-cli not found. Unpack the whisper.cpp Windows archive into the kit's whisper folder (see SETUP.md, Windows)."
+  : "whisper-cli not found. Install it: brew install whisper-cpp");
 const model = findModel();
 
 const run = (cmd, a) => spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
