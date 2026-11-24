@@ -22,7 +22,7 @@ jobs:
       - name: Step 1 · winget packages
         continue-on-error: true
         run: |
-          winget install --accept-package-agreements --accept-source-agreements --disable-interactivity OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp Microsoft.VCRedist.2015+.x64
+          winget install --accept-package-agreements --accept-source-agreements --disable-interactivity OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp DenoLand.Deno Microsoft.VCRedist.2015+.x64
           echo "winget exit: $?"
 
       - name: Step 1 · PATH line and check
@@ -31,7 +31,7 @@ jobs:
           export PATH="$(cygpath -u -p "$(powershell.exe -NoProfile -Command '[Environment]::GetEnvironmentVariable("Path","User")+";"+[Environment]::GetEnvironmentVariable("Path","Machine")' | tr -d '\r')"):$PATH"
           EOF
           source ~/.ai-camp-path.sh
-          for c in node git ffmpeg ffprobe yt-dlp; do printf "%-8s " $c; command -v $c || echo "MISSING"; done
+          for c in node git ffmpeg ffprobe yt-dlp deno; do printf "%-8s " $c; command -v $c || echo "MISSING"; done
           node -v; yt-dlp --version; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "
 
       - name: Step 1 · whisper.cpp

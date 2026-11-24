@@ -20,7 +20,9 @@ const dest = join(root, 'video-projects', slug);
 if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
 
 const run = (cmd, a, cwd = root) => {
-  const r = spawnSync(cmd, a, { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
+  // Windows runs .cmd files (npx.cmd) only through a shell; everything else runs directly,
+  // so paths with spaces such as C:\Program Files\nodejs\node.exe stay intact.
+  const r = spawnSync(cmd, a, { cwd, encoding: 'utf8', shell: cmd.endsWith('.cmd'), windowsHide: true });
   if (r.status !== 0) { console.error(`${cmd} ${a.join(' ')} failed:\n${r.stdout}\n${r.stderr}`); process.exit(1); }
   return r.stdout;
 };

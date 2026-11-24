@@ -189,12 +189,12 @@ echo "RAM GB: $(powershell.exe -NoProfile -Command '[math]::Round((Get-CimInstan
 **Step 1.** Packages:
 
 ```bash
-winget install --accept-package-agreements --accept-source-agreements OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp Microsoft.VCRedist.2015+.x64
+winget install --accept-package-agreements --accept-source-agreements OpenJS.NodeJS.LTS Git.Git Gyan.FFmpeg yt-dlp.yt-dlp DenoLand.Deno Microsoft.VCRedist.2015+.x64
 ```
 
 - Windows may ask "Do you want to allow this app to make changes?" a few times. The user clicks Yes.
 - "Already installed" lines are fine.
-- `Gyan.FFmpeg` is a full build (subtitles, drawtext).
+- `Gyan.FFmpeg` is a full build (subtitles, drawtext). `DenoLand.Deno` is what yt-dlp needs for YouTube links.
 
 Programs installed now are not visible to this session yet. Save a line that picks them up, and from here on start every command with `source ~/.ai-camp-path.sh;`. After Claude Code restarts it is no longer needed.
 
