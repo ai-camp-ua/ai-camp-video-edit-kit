@@ -1,0 +1,35 @@
+{
+  "about": "Font set taken from HyperFrames (bundled fonts, frame presets) and this kit's styles. 'cyrillic' = the Google Fonts family has a Cyrillic subset; all 18 were render-checked with 'Ґанок їжак єнот і'. 'replace' = closest-looking font from the same set that has Cyrillic.",
+  "cyrillic": [
+    "Inter", "Montserrat", "Nunito", "Oswald", "Roboto", "Open Sans", "Raleway",
+    "Playfair Display", "Lora", "Merriweather", "Source Serif 4", "EB Garamond",
+    "Pacifico", "Caveat",
+    "IBM Plex Mono", "JetBrains Mono", "Source Code Pro", "Fira Code"
+  ],
+  "replace": {
+    "Bebas Neue": "Oswald",
+    "League Gothic": "Oswald",
+    "Anton": "Oswald",
+    "Archivo Black": "Montserrat",
+    "Outfit": "Montserrat",
+    "Poppins": "Montserrat",
+    "Archivo": "Inter",
+    "Hanken Grotesk": "Inter",
+    "Space Grotesk": "Inter",
+    "DM Sans": "Inter",
+    "Plus Jakarta Sans": "Inter",
+    "Barlow": "Roboto",
+    "Lato": "Open Sans",
+    "Fredoka": "Nunito",
+    "Quicksand": "Nunito",
+    "Bodoni Moda": "Playfair Display",
+    "Instrument Serif": "Playfair Display",
+    "Fraunces": "Lora",
+    "Newsreader": "Source Serif 4",
+    "Libre Baskerville": "EB Garamond",
+    "Shrikhand": "Pacifico",
+    "Permanent Marker": "Caveat",
+    "DM Mono": "IBM Plex Mono",
+    "Space Mono": "JetBrains Mono"
+  }
+}
