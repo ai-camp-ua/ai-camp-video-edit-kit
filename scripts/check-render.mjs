@@ -20,9 +20,7 @@ const dest = join(root, 'video-projects', slug);
 if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
 
 const run = (cmd, a, cwd = root) => {
-  // Windows runs .cmd files (npx.cmd) only through a shell; everything else runs directly,
-  // so paths with spaces such as C:\Program Files\nodejs\node.exe stay intact.
-  const r = spawnSync(cmd, a, { cwd, encoding: 'utf8', shell: cmd.endsWith('.cmd'), windowsHide: true });
+  const r = spawnSync(cmd, a, { cwd, encoding: 'utf8', windowsHide: true });
   if (r.status !== 0) { console.error(`${cmd} ${a.join(' ')} failed:\n${r.stdout}\n${r.stderr}`); process.exit(1); }
   return r.stdout;
 };
@@ -58,10 +56,11 @@ window.__timelines=window.__timelines||{};window.__timelines['main']=tl;
 </script></body></html>
 `;
 writeFileSync(join(dest, 'index.html'), html);
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const lint = run(npx, ['hyperframes', 'lint'], dest);
+// The kit's own HyperFrames, run with node directly (no shell, works the same on Windows).
+const hf = [join(root, 'node_modules', 'hyperframes', 'bin', 'hyperframes.mjs')];
+const lint = run(process.execPath, [...hf, 'lint'], dest);
 if (!/0 errors/.test(lint)) { console.error(lint); process.exit(1); }
-run(npx, ['hyperframes', 'render', '--quality', 'draft', '--output', 'renders/check.mp4'], dest);
+run(process.execPath, [...hf, 'render', '--quality', 'draft', '--output', 'renders/check.mp4'], dest);
 const png = join(dest, 'renders', 'check.png');
 run('ffmpeg', ['-v', 'error', '-y', '-ss', '1.5', '-i', join(dest, 'renders', 'check.mp4'), '-frames:v', '1', png]);
 console.log(`ok · ${lang} · ${format} · ${display}\nLook at: ${png}\nDelete afterwards: video-projects/${slug}`);
