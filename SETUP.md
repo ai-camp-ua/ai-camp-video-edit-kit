@@ -96,8 +96,8 @@ npx hyperframes doctor
 ```
 
 - If the safety layer blocks `npm ci` as third-party code, tell the user this is the kit's own open-source code and ask them to allow it.
-- `npm warn` lines about install scripts are harmless.
-- In `hyperframes doctor`, ✗ on Docker or MusicGen is not needed for editing. HyperFrames downloads its own render browser on first render.
+- `npm warn` lines about install scripts (for example `esbuild`) are harmless; do not approve or deny them.
+- In `hyperframes doctor`, ✗ on Docker, Kokoro TTS or MusicGen is not needed for editing. HyperFrames downloads its own render browser on first render.
 - No API keys are needed: transcription is local.
 
 ## Step 4. Global HyperFrames skills
@@ -134,7 +134,7 @@ say -v Lesya -o "$T/a.aiff" "Привіт! Це тестове відео." && s
 ffmpeg -y -loglevel error -i "$T/a.aiff" -f lavfi -t 2 -i anullsrc=r=22050:cl=mono -i "$T/b.aiff" \
   -filter_complex "[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]" -map "[a]" "$T/voice.wav"
 ffmpeg -y -loglevel error -f lavfi -i color=c=gray:s=1080x1920:r=30 -i "$T/voice.wav" -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac "$T/raw.mp4"
-npm run transcribe -- "$T/raw.mp4" && node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > /dev/null && ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/raw.mp4" "$T/cut.mp4"
+npm run transcribe -- "$T/raw.mp4" && node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > /dev/null 2>&1 && for f in raw cut; do printf "$f: "; ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/$f.mp4"; done
 
 # FFmpeg subtitles
 printf '1\n00:00:00,000 --> 00:00:03,000\nҐанок, їжак, єнот\n' > "$T/s.srt"
@@ -160,7 +160,7 @@ cd video-projects/ua-check && npx hyperframes lint && npx hyperframes render --q
 Show one table:
 - tool, version, test result (✓ or ✗);
 - what to do for each ✗;
-- a separate group listing the items that are not needed for editing (Docker, MusicGen, the `.env` keys), so they cause no worry.
+- a separate group listing the items that are not needed for editing (Docker, Kokoro TTS, MusicGen, the `.env` keys), so they cause no worry.
 
 Then tell the user:
 - setup is finished;
