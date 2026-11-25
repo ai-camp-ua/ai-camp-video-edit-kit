@@ -40,13 +40,14 @@ jobs:
         run: |
           export PATH=$BARE
           mkdir -p ~/.local/bin && cd ~/.local
-          if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; else A=x64; FA=amd64; fi
+          if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; DA=aarch64; else A=x64; FA=amd64; DA=x86_64; fi
           if ! node -v 2>/dev/null | grep -qE '^v(2[2-9]|[3-9][0-9])'; then
             F=$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | grep -o "node-v[0-9.]*-darwin-$A.tar.gz" | head -1)
             curl -fsSL "https://nodejs.org/dist/latest-v22.x/$F" | tar xz && rm -rf node && mv "${F%.tar.gz}" node
           fi
           for t in ffmpeg ffprobe; do curl -fsSL -o "$t.zip" "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FA/release/$t.zip" && unzip -oq "$t.zip" -d bin && rm "$t.zip"; done
           curl -fsSL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos && chmod +x bin/yt-dlp
+          curl -fsSL -o deno.zip "https://github.com/denoland/deno/releases/latest/download/deno-$DA-apple-darwin.zip" && unzip -oq deno.zip -d bin && rm deno.zip
           printf 'export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"\n' > ~/.ai-camp-path.sh
 
       - name: Step 1 B · whisper.cpp
@@ -72,7 +73,7 @@ jobs:
       - name: Step 1 · both paths check
         run: |
           export PATH=$BARE
-          source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
+          source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp deno node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
           otool -L ~/.local/bin/whisper-cli
 
       - name: Step 2 · model
@@ -129,7 +130,7 @@ jobs:
         run: |
           export PATH=$BARE
           source ~/.ai-camp-path.sh
-          yt-dlp --version
+          yt-dlp --version; deno --version | head -1
           yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
       - name: Step 6 · fonts and HyperFrames frames

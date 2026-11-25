@@ -74,7 +74,7 @@ If Homebrew is missing, do not install it yourself, because its installer needs 
 - Also run the two `eval "$(/opt/homebrew/bin/brew shellenv)"` lines the installer prints, or run them yourself.
 
 ```bash
-brew install node git yt-dlp whisper-cpp ffmpeg-full
+brew install node git yt-dlp deno whisper-cpp ffmpeg-full
 printf 'export PATH="%s/opt/ffmpeg-full/bin:$PATH"\n' "$(brew --prefix)" > ~/.ai-camp-path.sh
 ```
 
@@ -90,17 +90,18 @@ xcode-select -p >/dev/null 2>&1 && git --version || xcode-select --install
 
 If a dialog appears, ask the user to click Install and wait until it finishes (5–20 minutes), then run `git --version` again.
 
-Node.js 22 (skipped if Node 22 or newer already works), FFmpeg and yt-dlp:
+Node.js 22 (skipped if Node 22 or newer already works), FFmpeg, yt-dlp and Deno (yt-dlp needs it for YouTube links):
 
 ```bash
 mkdir -p ~/.local/bin && cd ~/.local
-if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; else A=x64; FA=amd64; fi
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; DA=aarch64; else A=x64; FA=amd64; DA=x86_64; fi
 if ! node -v 2>/dev/null | grep -qE '^v(2[2-9]|[3-9][0-9])'; then
   F=$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | grep -o "node-v[0-9.]*-darwin-$A.tar.gz" | head -1)
   curl -fL "https://nodejs.org/dist/latest-v22.x/$F" | tar xz && rm -rf node && mv "${F%.tar.gz}" node
 fi
 for t in ffmpeg ffprobe; do curl -fL -o "$t.zip" "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FA/release/$t.zip" && unzip -oq "$t.zip" -d bin && rm "$t.zip"; done
 curl -fL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos && chmod +x bin/yt-dlp
+curl -fL -o deno.zip "https://github.com/denoland/deno/releases/latest/download/deno-$DA-apple-darwin.zip" && unzip -oq deno.zip -d bin && rm deno.zip
 printf 'export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"\n' > ~/.ai-camp-path.sh
 ```
 
@@ -129,7 +130,7 @@ Load the PATH line in future sessions, then check: both filters listed, `node -v
 
 ```bash
 grep -q "ai-camp-path" ~/.zshrc 2>/dev/null || printf '\n# AI CAMP video editing tools\n[ -f ~/.ai-camp-path.sh ] && source ~/.ai-camp-path.sh\n' >> ~/.zshrc
-source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
+source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp deno node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
 ```
 
 ## Step 2. Whisper model
