@@ -27,7 +27,6 @@ Read `docs/WORKFLOW.md` for a complete edit. For one stage, load the matching sk
 | Need | Skill |
 | --- | --- |
 | Reels, Shorts, and short advertisements | `short-form-edit` |
-| Pick a reel look: type → 4–5 drafts → final | `reel-library/README.md` |
 | Full raw-video edit (long form) | `edit-video` |
 | Silence removal | `cut-silences` |
 | Retakes, false starts, or stutters | `cut-mistakes` |
