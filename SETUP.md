@@ -109,7 +109,7 @@ whisper.cpp, built on this Mac (2–5 minutes; skipped if `whisper-cli` already 
 ```bash
 source ~/.ai-camp-path.sh; cd ~/.local
 if ! whisper-cli --help >/dev/null 2>&1; then
-  CM=$(command -v cmake)
+  CM=$(command -v cmake || true)
   if [ -z "$CM" ]; then
     CV=$(curl -fsSL https://api.github.com/repos/Kitware/CMake/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o '[0-9][0-9.]*')
     curl -fL "https://github.com/Kitware/CMake/releases/download/v$CV/cmake-$CV-macos-universal.tar.gz" | tar xz

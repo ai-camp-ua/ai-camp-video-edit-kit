@@ -1,5 +1,6 @@
 # Runs the SETUP.md Mac "Path B" (ready builds, no Homebrew) on clean GitHub
-# Macs: macOS 14 on an Apple chip, and an Intel Mac. Every step starts from a
+# Macs: an Apple chip (macos-14 runners are retired, so macOS 15 stands in)
+# and an Intel Mac. Every step starts from a
 # bare system PATH, so the runner's preinstalled Homebrew tools are not used.
 # Started by hand (Actions → Mac setup test) or by a push to a ci/* branch.
 name: Mac setup test
@@ -13,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15-intel]
+        os: [macos-15, macos-15-intel]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 75
     defaults:
@@ -53,7 +54,7 @@ jobs:
           export PATH=$BARE
           source ~/.ai-camp-path.sh; cd ~/.local
           if ! whisper-cli --help >/dev/null 2>&1; then
-            CM=$(command -v cmake)
+            CM=$(command -v cmake || true)
             if [ -z "$CM" ]; then
               CV=$(curl -fsSL https://api.github.com/repos/Kitware/CMake/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o '[0-9][0-9.]*')
               curl -fsSL "https://github.com/Kitware/CMake/releases/download/v$CV/cmake-$CV-macos-universal.tar.gz" | tar xz
