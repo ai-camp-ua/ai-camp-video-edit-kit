@@ -1,8 +1,20 @@
+<!-- setup-version: 2026-11-25.1 -->
 # SETUP: local video-editing workspace for Claude Code
 
 You are setting up a workspace for editing videos (Reels, Shorts, TikTok, YouTube) with Claude Code.
 The user is not a programmer. Talk to them in the language they write in, in plain words, in every message including short progress notes. Never ask them to edit files or type commands, except where noted (a Mac password, which only they may enter).
 Verify every step by running a command and reading its output, not by assuming. If a step fails, explain why in one or two sentences and fix it before moving on.
+
+## Newest version first
+
+This file may be an older copy. Fetch the current one from the kit's repository (same author):
+
+```bash
+N="$(mktemp -d)/SETUP.md"; curl -fsSL https://raw.githubusercontent.com/ai-camp-ua/ai-camp-video-edit-kit/main/SETUP.md -o "$N" && head -1 "$N"; echo "$N"
+```
+
+- Compare its first line with the first line of this file. If its `setup-version` is later (compare as text) or this file has no `setup-version` line, read that file in full and follow it from the top instead of this one. Tell the user in one short line that you are using the newest instructions.
+- If the versions are the same, or the download fails, continue with this file.
 
 ## Video language
 
@@ -30,7 +42,7 @@ What gets installed:
 
 | Tool | Purpose |
 |---|---|
-| FFmpeg (full build, `ffmpeg-full`) | cutting, joining, colour, audio, burned-in subtitles |
+| FFmpeg (full build with `subtitles` and `drawtext`) | cutting, joining, colour, audio, burned-in subtitles |
 | whisper.cpp + `ggml-large-v3-turbo` | local word-level transcription, ~100 languages |
 | yt-dlp | downloading reference videos from Instagram, YouTube or TikTok links |
 | Node.js 22+ | runtime for HyperFrames and the kit |
@@ -40,33 +52,84 @@ What gets installed:
 ## Step 0. System check
 
 ```bash
-sw_vers 2>/dev/null; uname -m; df -h "$HOME" | tail -1; echo "RAM GB: $(( $(sysctl -n hw.memsize) / 1073741824 ))"
-for c in brew git node npm; do printf "%-6s " $c; command -v $c >/dev/null && ($c --version 2>&1 | head -1) || echo "missing"; done
+sw_vers 2>/dev/null; uname -m; echo "Apple chip: $(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)"; df -h "$HOME" | tail -1; echo "RAM GB: $(( $(sysctl -n hw.memsize) / 1073741824 ))"
+for c in brew git node npm ffmpeg whisper-cli yt-dlp; do printf "%-12s " $c; command -v $c >/dev/null && ($c --version 2>&1 | head -1) || echo "missing"; done
 ```
 
 - At least 10 GB free is required. If there is less, ask the user to free space, then continue.
 - On Windows, go to the "Windows" section.
-- If Homebrew is missing, do not install it yourself, because its installer needs the Mac password.
-  - Give the user the one-line command from https://brew.sh. Tell them to paste it into the Terminal app, enter their Mac password (typing is invisible), and wait for "Installation successful".
-  - On Apple Silicon, also run the two `eval "$(/opt/homebrew/bin/brew shellenv)"` lines the installer prints, or run them yourself.
-- If `git` triggers the "install command line developer tools" dialog, ask the user to click Install and wait for it to finish.
+- Choose the Mac path:
+  - **Path A (Homebrew):** Apple chip (`Apple chip: 1`) and macOS 15 or newer.
+  - **Path B (ready builds, no Homebrew):** an Intel Mac, or macOS 14 or older. Homebrew has no ready builds there and compiles everything from source for hours, so do not use `brew` on these Macs even if it is installed. macOS 11 or older is too old for the tools: tell the user this Mac needs a macOS update first, or another computer.
+- Tell the user in one plain sentence which path this Mac takes.
 
 ## Step 1. Packages (macOS)
 
+Do not remove or reinstall programs the user already has. Both paths end by writing `~/.ai-camp-path.sh`, a line that puts the right programs first on PATH. From then on, start every command that needs them with `source ~/.ai-camp-path.sh;`.
+
+### Path A (Homebrew)
+
+If Homebrew is missing, do not install it yourself, because its installer needs the Mac password:
+- Give the user the one-line command from https://brew.sh. Tell them to paste it into the Terminal app, enter their Mac password (typing is invisible), and wait for "Installation successful".
+- Also run the two `eval "$(/opt/homebrew/bin/brew shellenv)"` lines the installer prints, or run them yourself.
+
 ```bash
 brew install node git yt-dlp whisper-cpp ffmpeg-full
+printf 'export PATH="%s/opt/ffmpeg-full/bin:$PATH"\n' "$(brew --prefix)" > ~/.ai-camp-path.sh
 ```
 
-`ffmpeg-full` is keg-only (the plain `ffmpeg` formula lacks the `subtitles` and `drawtext` filters). Put it first on PATH for future sessions:
+`ffmpeg-full` is keg-only; the plain `ffmpeg` formula lacks the `subtitles` and `drawtext` filters.
+
+### Path B (ready builds, no Homebrew)
+
+Everything goes into `~/.local`, so no Mac password is needed. First the Apple developer tools (git and a compiler):
 
 ```bash
-grep -q "ffmpeg-full/bin" ~/.zshrc 2>/dev/null || printf '\n# Full FFmpeg (libass, drawtext) for video editing\nexport PATH="%s/opt/ffmpeg-full/bin:$PATH"\n' "$(brew --prefix)" >> ~/.zshrc
+xcode-select -p >/dev/null 2>&1 && git --version || xcode-select --install
 ```
 
-In this session `.zshrc` is not reloaded, so prefix commands that need FFmpeg with `export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH";`. Check both filters and that `node -v` is 22 or newer:
+If a dialog appears, ask the user to click Install and wait until it finishes (5–20 minutes), then run `git --version` again.
+
+Node.js 22 (skipped if Node 22 or newer already works), FFmpeg and yt-dlp:
 
 ```bash
-export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"; which ffmpeg ffprobe; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
+mkdir -p ~/.local/bin && cd ~/.local
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; else A=x64; FA=amd64; fi
+if ! node -v 2>/dev/null | grep -qE '^v(2[2-9]|[3-9][0-9])'; then
+  F=$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | grep -o "node-v[0-9.]*-darwin-$A.tar.gz" | head -1)
+  curl -fL "https://nodejs.org/dist/latest-v22.x/$F" | tar xz && rm -rf node && mv "${F%.tar.gz}" node
+fi
+for t in ffmpeg ffprobe; do curl -fL -o "$t.zip" "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FA/release/$t.zip" && unzip -oq "$t.zip" -d bin && rm "$t.zip"; done
+curl -fL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos && chmod +x bin/yt-dlp
+printf 'export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"\n' > ~/.ai-camp-path.sh
+```
+
+whisper.cpp, built on this Mac (2–5 minutes; skipped if `whisper-cli` already works). A portable CMake is downloaded only if there is none:
+
+```bash
+source ~/.ai-camp-path.sh; cd ~/.local
+if ! whisper-cli --help >/dev/null 2>&1; then
+  CM=$(command -v cmake)
+  if [ -z "$CM" ]; then
+    CV=$(curl -fsSL https://api.github.com/repos/Kitware/CMake/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o '[0-9][0-9.]*')
+    curl -fL "https://github.com/Kitware/CMake/releases/download/v$CV/cmake-$CV-macos-universal.tar.gz" | tar xz
+    CM="$HOME/.local/cmake-$CV-macos-universal/CMake.app/Contents/bin/cmake"
+  fi
+  WV=$(curl -fsSL https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o 'v[0-9.]*')
+  rm -rf src/whisper.cpp && git clone -q --depth 1 --branch "$WV" https://github.com/ggml-org/whisper.cpp src/whisper.cpp
+  cd src/whisper.cpp && { "$CM" -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF > build.log 2>&1 \
+    && "$CM" --build build -j --config Release --target whisper-cli >> build.log 2>&1 && cp build/bin/whisper-cli ~/.local/bin/ || tail -30 build.log; }
+fi
+whisper-cli --help 2>&1 | head -2
+```
+
+### Both paths
+
+Load the PATH line in future sessions, then check: both filters listed, `node -v` 22 or newer, `whisper-cli` and `yt-dlp` found.
+
+```bash
+grep -q "ai-camp-path" ~/.zshrc 2>/dev/null || printf '\n# AI CAMP video editing tools\n[ -f ~/.ai-camp-path.sh ] && source ~/.ai-camp-path.sh\n' >> ~/.zshrc
+source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
 ```
 
 ## Step 2. Whisper model
@@ -95,7 +158,7 @@ git remote add origin https://github.com/ai-camp-ua/ai-camp-video-edit-kit.git
 git fetch -q --depth 1 origin main
 git checkout -q -t origin/main
 printf 'CLAUDE.local.md\n' >> .git/info/exclude
-export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"
+source ~/.ai-camp-path.sh
 npm ci && npm run setup -- --lang LANG && npm test
 npx hyperframes doctor
 ```
@@ -122,7 +185,7 @@ The kit's `CLAUDE.md` already covers replies in the user's language, local trans
 ```markdown
 # Local setup (this computer)
 
-- FFmpeg: use `<brew prefix>/opt/ffmpeg-full/bin/ffmpeg` (full build with subtitles/drawtext) if `ffmpeg` on PATH lacks those filters.
+- Tools: if `ffmpeg`, `node`, `whisper-cli` or `yt-dlp` is not found, or `ffmpeg` lacks the `subtitles` filter, start the command with `source ~/.ai-camp-path.sh;`.
 - Whisper model: `<W>/models/<model file>` (found automatically by `npm run transcribe`).
 - References: download with `yt-dlp <link>` into the video's `refs/` folder. If a link fails (private account), ask the user to send the file.
 - Each new video gets its own folder via `npm run new-video -- <slug>` (reel-01, reel-02…; add `--format 16:9` for horizontal). Footage goes into its `assets/`, references into `refs/`. Never move or modify originals.
@@ -133,7 +196,7 @@ The kit's `CLAUDE.md` already covers replies in the user's language, local trans
 Check the results, not only exit codes. Run from `$W`, with `LANG` as in Step 3.
 
 ```bash
-cd "$W" && export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"
+cd "$W" && source ~/.ai-camp-path.sh
 T=$(mktemp -d)
 
 # Transcription and silence cutting: a synthetic clip in the video's language (two sentences, 2 s pause)
@@ -172,14 +235,14 @@ Show one table:
 
 Then tell the user:
 - setup is finished;
-- they should open a **new chat in this same environment**, because the editing skills and the PATH change load in a new chat;
+- they should open a **new chat in this same environment**, because the editing skills and the new programs load in a new chat;
 - that is where they edit: drop a video into the chat and describe what they want.
 
 ---
 
 ## Windows
 
-Claude Code on Windows runs commands in Git Bash, so the steps above work as written, with these changes.
+Claude Code on Windows runs commands in Git Bash, so the steps above work as written, with these changes. The Mac paths A and B do not apply.
 
 **Step 0.** System check:
 
@@ -225,6 +288,6 @@ RAM=$(powershell.exe -NoProfile -Command '[math]::Round((Get-CimInstance Win32_C
 ```
 
 **Steps 3–6.**
-- Replace `export PATH="$(brew --prefix)/opt/ffmpeg-full/bin:$PATH"` with `source ~/.ai-camp-path.sh`.
-- In `CLAUDE.local.md`, skip the FFmpeg line and write the Windows paths.
+- `source ~/.ai-camp-path.sh` uses the Windows file from Step 1.
+- In `CLAUDE.local.md`, write the Windows paths.
 - `test-clip.mjs` uses Windows voices. Often only English is installed. If there is no voice for `LANG`, make the clip with `--lang en` and transcribe it with `npm run transcribe -- "$T/raw.mp4" --language en`. Or the user can add a voice in Settings → Time & language → Speech.

@@ -1,0 +1,156 @@
+# Runs the SETUP.md Mac "Path B" (ready builds, no Homebrew) on clean GitHub
+# Macs: macOS 14 on an Apple chip, and an Intel Mac. Every step starts from a
+# bare system PATH, so the runner's preinstalled Homebrew tools are not used.
+# Started by hand (Actions → Mac setup test) or by a push to a ci/* branch.
+name: Mac setup test
+on:
+  workflow_dispatch:
+  push:
+    branches: ['ci/**']
+
+jobs:
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: bash
+    env:
+      LANG_CODE: uk
+      BARE: /usr/bin:/bin:/usr/sbin:/sbin
+    steps:
+      - name: Newest version check
+        run: |
+          export PATH=$BARE
+          N="$(mktemp -d)/SETUP.md"; curl -fsSL https://raw.githubusercontent.com/ai-camp-ua/ai-camp-video-edit-kit/main/SETUP.md -o "$N" && head -1 "$N"; echo "$N"
+
+      - name: Step 0 · system check
+        run: |
+          export PATH=$BARE
+          sw_vers 2>/dev/null; uname -m; echo "Apple chip: $(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)"; df -h "$HOME" | tail -1; echo "RAM GB: $(( $(sysctl -n hw.memsize) / 1073741824 ))"
+          for c in brew git node npm ffmpeg whisper-cli yt-dlp cmake; do printf "%-12s " $c; command -v $c >/dev/null && ($c --version 2>&1 | head -1) || echo "missing"; done
+          xcode-select -p
+
+      - name: Step 1 B · Node, FFmpeg, yt-dlp
+        run: |
+          export PATH=$BARE
+          mkdir -p ~/.local/bin && cd ~/.local
+          if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then A=arm64; FA=arm64; else A=x64; FA=amd64; fi
+          if ! node -v 2>/dev/null | grep -qE '^v(2[2-9]|[3-9][0-9])'; then
+            F=$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | grep -o "node-v[0-9.]*-darwin-$A.tar.gz" | head -1)
+            curl -fsSL "https://nodejs.org/dist/latest-v22.x/$F" | tar xz && rm -rf node && mv "${F%.tar.gz}" node
+          fi
+          for t in ffmpeg ffprobe; do curl -fsSL -o "$t.zip" "https://ffmpeg.martin-riedl.de/redirect/latest/macos/$FA/release/$t.zip" && unzip -oq "$t.zip" -d bin && rm "$t.zip"; done
+          curl -fsSL -o bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos && chmod +x bin/yt-dlp
+          printf 'export PATH="$HOME/.local/node/bin:$HOME/.local/bin:$PATH"\n' > ~/.ai-camp-path.sh
+
+      - name: Step 1 B · whisper.cpp
+        run: |
+          export PATH=$BARE
+          source ~/.ai-camp-path.sh; cd ~/.local
+          if ! whisper-cli --help >/dev/null 2>&1; then
+            CM=$(command -v cmake)
+            if [ -z "$CM" ]; then
+              CV=$(curl -fsSL https://api.github.com/repos/Kitware/CMake/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o '[0-9][0-9.]*')
+              curl -fsSL "https://github.com/Kitware/CMake/releases/download/v$CV/cmake-$CV-macos-universal.tar.gz" | tar xz
+              CM="$HOME/.local/cmake-$CV-macos-universal/CMake.app/Contents/bin/cmake"
+            fi
+            echo "cmake: $CM"
+            WV=$(curl -fsSL https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest | grep -o '"tag_name": *"v[0-9.]*"' | grep -o 'v[0-9.]*')
+            echo "whisper.cpp: $WV"
+            rm -rf src/whisper.cpp && git clone -q --depth 1 --branch "$WV" https://github.com/ggml-org/whisper.cpp src/whisper.cpp
+            cd src/whisper.cpp && { "$CM" -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF > build.log 2>&1 \
+              && "$CM" --build build -j --config Release --target whisper-cli >> build.log 2>&1 && cp build/bin/whisper-cli ~/.local/bin/ || tail -30 build.log; }
+          fi
+          whisper-cli --help 2>&1 | head -2
+
+      - name: Step 1 · both paths check
+        run: |
+          export PATH=$BARE
+          source ~/.ai-camp-path.sh; which ffmpeg ffprobe whisper-cli yt-dlp node; ffmpeg -hide_banner -filters 2>/dev/null | grep -E " (subtitles|drawtext) "; node -v
+          otool -L ~/.local/bin/whisper-cli
+
+      - name: Step 2 · model
+        run: |
+          export PATH=$BARE
+          W="$HOME/VideoEditing"; mkdir -p "$W/models"; cd "$W"
+          RAM=$(( $(sysctl -n hw.memsize) / 1073741824 ))
+          if [ "$RAM" -ge 16 ]; then M=ggml-large-v3-turbo.bin; else M=ggml-large-v3-turbo-q5_0.bin; fi
+          curl -sS -L --fail -C - -o "models/$M" "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$M" && ls -lh models
+
+      - name: Step 3 · kit
+        run: |
+          export PATH=$BARE
+          W="$HOME/VideoEditing"; cd "$W"
+          git init -q -b main
+          git remote add origin https://github.com/${{ github.repository }}.git
+          git fetch -q --depth 1 origin ${{ github.sha }}
+          git checkout -q FETCH_HEAD
+          printf 'CLAUDE.local.md\n' >> .git/info/exclude
+          source ~/.ai-camp-path.sh
+          npm ci && npm run setup -- --lang $LANG_CODE && npm test
+          npx hyperframes doctor || true
+
+      - name: Step 4 · HyperFrames skills
+        run: |
+          export PATH=$BARE
+          source ~/.ai-camp-path.sh
+          cd "$HOME/VideoEditing" && npx hyperframes skills update hyperframes hyperframes-cli hyperframes-registry media-use && ls ~/.claude/skills
+
+      - name: Step 6 · test clip, transcription, silence cut
+        continue-on-error: true
+        run: |
+          export PATH=$BARE
+          W="$HOME/VideoEditing"; cd "$W" && source ~/.ai-camp-path.sh
+          T=$(mktemp -d); echo "T=$T"; echo "$T" > ~/smoke-T
+          node scripts/test-clip.mjs "$T" --lang $LANG_CODE || { echo "NO $LANG_CODE VOICE, using en"; node scripts/test-clip.mjs "$T" --lang en; echo en > ~/smoke-lang; }
+          L=$(cat ~/smoke-lang 2>/dev/null || echo $LANG_CODE)
+          npm run transcribe -- "$T/raw.mp4" --language $L && node -e "console.log(require(process.argv[1]).words.map(w=>w.text).join(' '))" "$T/raw.json"
+          node .claude/skills/cut-silences/scripts/cut-silences.mjs "$T/raw.json" --video "$T/raw.mp4" --apply --output "$T/cut.mp4" > "$T/cut.log" 2>&1 \
+            || { tail -20 "$T/cut.log"; echo "CUT FAILED"; }
+          for f in raw cut; do printf "$f: "; ffprobe -v error -show_entries format=duration -of csv=p=0 "$T/$f.mp4"; done
+
+      - name: Step 6 · FFmpeg subtitles
+        continue-on-error: true
+        run: |
+          export PATH=$BARE
+          W="$HOME/VideoEditing"; cd "$W" && source ~/.ai-camp-path.sh; T=$(cat ~/smoke-T)
+          printf '1\n00:00:00,000 --> 00:00:03,000\n%s\n' "$(node -e "import('./scripts/lib/lang.mjs').then(m=>console.log(m.sampleFor('$LANG_CODE')))")" > "$T/s.srt"
+          cat "$T/s.srt"
+          (cd "$T" && ffmpeg -y -loglevel error -i cut.mp4 -vf "subtitles=s.srt:force_style='FontSize=18'" -t 3 sub.mp4 && ffmpeg -y -loglevel error -ss 1 -i sub.mp4 -frames:v 1 sub.png) && ls -l "$T/sub.png"
+
+      - name: Step 6 · yt-dlp
+        continue-on-error: true
+        run: |
+          export PATH=$BARE
+          source ~/.ai-camp-path.sh
+          yt-dlp --version
+          yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+
+      - name: Step 6 · fonts and HyperFrames frames
+        continue-on-error: true
+        run: |
+          export PATH=$BARE
+          W="$HOME/VideoEditing"; cd "$W" && source ~/.ai-camp-path.sh
+          npm run -s font-check -- "Bebas Neue" Montserrat
+          npm run -s check-render -- --format 9:16
+          npm run -s check-render -- --format 16:9
+
+      - name: Collect results
+        if: always()
+        run: |
+          W="$HOME/VideoEditing"; OUT="$GITHUB_WORKSPACE/ci-out"; mkdir -p "$OUT"
+          T=$(cat ~/smoke-T 2>/dev/null); [ -n "$T" ] && cp "$T"/sub.png "$T"/cut.log "$T"/raw.json "$OUT"/ 2>/dev/null
+          for d in "$W"/video-projects/check-*; do [ -f "$d/renders/check.png" ] && cp "$d/renders/check.png" "$OUT/$(basename "$d").png"; done
+          ls -l "$OUT"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-setup-results-${{ matrix.os }}
+          path: ci-out
