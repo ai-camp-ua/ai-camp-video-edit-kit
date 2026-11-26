@@ -98,11 +98,10 @@ jobs:
           source ~/.ai-camp-path.sh
           yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
-      - name: Step 6 · fonts and HyperFrames frames
+      - name: Step 6 · HyperFrames frames
         continue-on-error: true
         run: |
           W="$HOME/VideoEditing"; cd "$W" && source ~/.ai-camp-path.sh
-          npm run -s font-check -- "Bebas Neue" Montserrat
           npm run -s check-render -- --format 9:16
           npm run -s check-render -- --format 16:9
           npm run -s check-render -- --format 9:16 --lang en

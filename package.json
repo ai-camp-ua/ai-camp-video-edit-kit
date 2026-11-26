@@ -9,7 +9,6 @@
     "transcribe:elevenlabs": "node scripts/transcribe-elevenlabs.mjs",
     "validate-beats": "node scripts/validate-beat-sync.mjs",
     "preflight": "node scripts/preflight.mjs",
-    "font-check": "node scripts/font-check.mjs",
     "check-render": "node scripts/check-render.mjs",
     "sync:skills": "node scripts/sync-codex-skills.mjs",
     "check:skills": "node scripts/sync-codex-skills.mjs --check",

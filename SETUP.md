@@ -214,8 +214,7 @@ printf '1\n00:00:00,000 --> 00:00:03,000\n%s\n' "$(node -e "import('./scripts/li
 # yt-dlp: metadata only
 yt-dlp --simulate --print "%(title)s | %(duration)ss" "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 
-# Fonts and HyperFrames: one test frame per format
-npm run -s font-check -- "Bebas Neue" Montserrat
+# HyperFrames: one test frame per format
 npm run -s check-render -- --format 9:16
 npm run -s check-render -- --format 16:9
 echo "$T"

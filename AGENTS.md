@@ -53,13 +53,13 @@ and the project's DESIGN.md. The philosophy's fast sizzle pacing is a style
 reference; give speech room to breathe. Framework skill contracts override
 historical code recipes in the style guide.
 
-## Fonts and letters
+## Fonts
 
-Every font must draw all letters of the video's language itself. Before using a
-font run `npm run font-check -- "Font Name"`. If it does not cover the language,
-use its replacement (Cyrillic: `fonts/fonts.json`) for the whole text, Latin and
-digits included, so a line never mixes two fonts. Check one frame with
-`npm run check-render` or a frame of the real video. Details: `docs/FONTS.md`.
+Name the font the reference reel uses and use it. A reference in Ukrainian or
+Russian already has a Cyrillic font. For a Cyrillic video with a reference in
+English or another language, check whether the font has a Cyrillic version and
+use it if it does. If it does not, tell the user and ask whether to pick the
+closest-looking font; use the chosen font for the whole text.
 
 ## Workspace
 

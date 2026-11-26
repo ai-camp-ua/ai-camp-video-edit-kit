@@ -28,8 +28,7 @@ run(process.execPath, [join(root, 'scripts/new-video.mjs'), slug, '--format', fo
 const [W, H] = { '9:16': [1080, 1920], '16:9': [1920, 1080], '1:1': [1080, 1080], '4:5': [1080, 1350] }[format];
 const u = Math.min(W, H) / 100;
 
-// The rule from docs/FONTS.md: Bebas Neue has no Cyrillic, so a Cyrillic video
-// uses its replacement (Oswald) for the whole text, not a mix of two fonts.
+// Bebas Neue has no Cyrillic, so the Cyrillic test frame uses Oswald.
 const display = subsetFor(lang) === 'cyrillic' ? 'Oswald' : 'Bebas Neue';
 const vertical = H > W;
 const html = `<!doctype html>
