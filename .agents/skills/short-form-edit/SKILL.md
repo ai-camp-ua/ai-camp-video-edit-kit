@@ -40,7 +40,9 @@ the next edit starts from it. Record the note and the resulting rule together.
    and video-storytelling skills before composition work. Use the user's brief
    over aesthetic defaults. Keep all artifacts in `video-projects/<slug>/`.
 2. Probe the supplied source and reference: duration, dimensions, frame rate,
-   audio, and existing transcript identity. Preserve originals. Transcribe with
+   audio, and existing transcript identity. Preserve originals. Make one 1080x1920
+   30 fps working copy first (1920x1080 for horizontal) and cut, transcribe and
+   compose only from it. Transcribe with
    `npm run transcribe -- <source>` (local Whisper) unless the user chose another
    provider. Read
    `docs/TOOLS-AND-API-KEYS.md` for Whisper alternatives, word-timestamp
@@ -292,12 +294,14 @@ human reactions where they support the story.
 6. Run lint and inspect the live preview before rendering. Browser automation is
    headless with Pointer Lock and pointer capture disabled in every context.
    Local automated review is permitted when the user authorized autonomous
-   iteration. Render a draft, inspect it, revise, then render final quality.
+   iteration. Check and fix on still frames of the affected seconds
+   (`npx hyperframes snapshot --at`), then render the full preview once; render
+   again after the user's notes.
    If the framework capture stalls, a deterministic graphics export plus FFmpeg
    assembly is acceptable. Await local fonts before capturing canvas. Normalize
    every video input to the same frame time base before overlaying, and inspect
-   every encoded cut for one-frame mismatches. Build final face crops from the
-   native-resolution source rather than a downscaled editing proxy.
+   every encoded cut for one-frame mismatches. Render at 1080. Take a segment
+   from the original only for a zoom above 1.5x; render 4K when the user asks.
 
 ## Gates before delivery
 

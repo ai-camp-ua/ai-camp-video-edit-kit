@@ -113,6 +113,9 @@ sub-compositions, run `node scripts/validate-beat-sync.mjs <project>`; each beat
 needs data-anchor with an exact transcript phrase. Enter between 0.2 seconds after
 and 1.8 seconds before that word. Inline timelines require manual timing review.
 
+Run each render alone, with no background removal, transcription or encoding
+alongside it.
+
 Review the encoded draft, extract and inspect hero frames and transition
 boundaries, and listen to the audio joins. Check cropped faces, overflow, black
 flashes, readable captions, every letter of the language, safe zones of the format, clipping, and A/V sync. Resolve
